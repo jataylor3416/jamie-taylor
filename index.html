@@ -34,16 +34,11 @@
   .page { min-height: 100vh; min-height: 100svh; display: grid; grid-template-rows: auto minmax(220px, 1fr) auto; }
   header { display: flex; justify-content: center; padding: max(28px, env(safe-area-inset-top)) 16px 0; }
   .scene { position: relative; overflow: hidden; }
-  .scene svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .scene img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 45% 60%; display: block;
+    -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent); mask-image: linear-gradient(to bottom, #000 78%, transparent);
+    animation: drift 40s ease-in-out infinite alternate; }
+  @keyframes drift { from { transform: scale(1.04); } to { transform: scale(1.14) translateX(-3%); } }
 
-  .star { animation: twinkle var(--d) ease-in-out var(--o) infinite; }
-  @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: .15; } }
-  .win { animation: flicker var(--d) steps(1) var(--o) infinite; }
-  @keyframes flicker { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
-  .shimmer { animation: drift var(--d) linear var(--o) infinite; }
-  @keyframes drift { 0% { transform: translateX(-40px); opacity: 0; } 30%, 70% { opacity: 1; } 100% { transform: translateX(40px); opacity: 0; } }
-  .sun { animation: rise 2.4s cubic-bezier(.2, .7, .2, 1) both; }
-  @keyframes rise { from { transform: translateY(80px); } to { transform: none; } }
 
   main {
     display: flex; flex-direction: column; align-items: center;
@@ -71,25 +66,14 @@
   .btn svg { width: 18px; height: 18px; flex: none; }
   .email { margin-top: 16px; font-size: 14px; font-weight: 500; color: var(--cloud); text-decoration: none; }
   .email:hover { color: var(--coral); }
-  @media (prefers-reduced-motion: reduce) { .star, .win, .shimmer, .sun { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .scene img { animation: none; } }
 </style>
 </head>
 <body>
   <div class="page">
   <header><img class="logo" src="atlocal-logo-dark.svg" alt="atLocal"></header>
-  <div class="scene" aria-hidden="true">
-    <svg id="scene" viewBox="290 40 620 510" preserveAspectRatio="xMidYMax slice">
-      <rect width="1200" height="900" fill="#21134f"/>
-      <g id="stars"></g>
-      <clipPath id="above"><rect width="1200" height="400"/></clipPath>
-      <g clip-path="url(#above)"><circle class="sun" cx="800" cy="400" r="105" fill="#e14565"/></g>
-      <g id="sunref" fill="#e14565"></g>
-      <g id="skyline"></g>
-      <g id="reflect" fill="#3b20ab"></g>
-      <rect x="0" y="399" width="1200" height="2" fill="#3b20ab"/>
-      <g id="bridge" fill="none" stroke="#ff7d80"></g>
-      <g id="shimmer" fill="#ff7d80"></g>
-    </svg>
+  <div class="scene">
+    <img src="skyline.jpg" alt="Little Rock skyline and Junction Bridge at sunset">
   </div>
 
   <main>
@@ -129,93 +113,6 @@
   </div>
 
 <script>
-  // Little Rock skyline at dusk, drawn in flat atLocal brand colours.
-  const NS = "http://www.w3.org/2000/svg";
-  const el = (tag, attrs, parent) => {
-    const n = document.createElementNS(NS, tag);
-    for (const k in attrs) n.setAttribute(k, attrs[k]);
-    if (parent) parent.appendChild(n);
-    return n;
-  };
-  let seed = 7;
-  const rand = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const H = 400; // horizon
-
-  // Stars
-  const stars = document.getElementById("stars");
-  for (let i = 0; i < 70; i++) {
-    const s = el("circle", { cx: rand() * 1200, cy: 40 + rand() * 300, r: 0.8 + rand() * 1.4, fill: "#f4f1fb", class: "star" }, stars);
-    s.style.setProperty("--d", (2 + rand() * 4).toFixed(1) + "s");
-    s.style.setProperty("--o", (-rand() * 5).toFixed(1) + "s");
-  }
-
-  // Sun reflection stripes
-  const sunref = document.getElementById("sunref");
-  [[8, 170], [18, 130], [30, 90], [44, 50]].forEach(([dy, w]) => el("rect", { x: 800 - w / 2, y: H + dy, width: w, height: 4 }, sunref));
-
-  // Buildings: [x, width, height, top]
-  const B = [
-    [250, 36, 60], [290, 40, 85], [334, 30, 120], [368, 34, 70],
-    [405, 42, 110], [450, 40, 170, "flat"], [494, 52, 230, "step"], [550, 48, 300, "crown"],
-    [602, 46, 240, "slant"], [652, 44, 185, "flat"], [700, 38, 120], [742, 34, 70], [780, 40, 85],
-    [824, 30, 60], [858, 44, 45]
-  ];
-  const sky = document.getElementById("skyline");
-  const refl = document.getElementById("reflect");
-  B.forEach(([x, w, h, top]) => {
-    const y = H - h;
-    let d = `M${x} ${H}V${y}H${x + w}V${H}Z`;
-    if (top === "step") d = `M${x} ${H}V${y + 16}H${x + 8}V${y + 8}H${x + 16}V${y}H${x + w - 16}V${y + 8}H${x + w - 8}V${y + 16}H${x + w}V${H}Z`;
-    if (top === "crown") d = `M${x} ${H}V${y}H${x + 8}V${y - 14}H${x + w - 8}V${y}H${x + w}V${H}Z M${x + w / 2 - 1.5} ${y - 14}h3v-26h-3z`;
-    if (top === "slant") d = `M${x} ${H}V${y + 18}L${x + w} ${y}V${H}Z`;
-    el("path", { d, fill: "#3b20ab" }, sky);
-
-    // Windows
-    for (let wy = y + 22; wy < H - 10; wy += 12) {
-      for (let wx = x + 6; wx < x + w - 6; wx += 9) {
-        if (rand() < 0.28) {
-          const win = el("rect", { x: wx, y: wy, width: 4, height: 6, fill: rand() < 0.75 ? "#ff7d80" : "#f4f1fb" }, sky);
-          if (rand() < 0.18) {
-            win.setAttribute("class", "win");
-            win.style.setProperty("--d", (4 + rand() * 8).toFixed(1) + "s");
-            win.style.setProperty("--o", (-rand() * 8).toFixed(1) + "s");
-          }
-        }
-      }
-    }
-    // Broken reflection stripes on the river
-    for (let ry = H + 6, i = 0; ry < H + Math.min(h * 0.5, 90); ry += 7, i++) {
-      const inset = (i % 2) * 4 + rand() * 4;
-      el("rect", { x: x + inset, y: ry, width: Math.max(4, w - inset * 2), height: 3 }, refl);
-    }
-  });
-
-  // Clinton Presidential Center, cantilevered over the river bank
-  el("path", { d: `M890 ${H}V${H - 18}H880V${H - 34}H1030V${H - 18}H905V${H}Z`, fill: "#3b20ab" }, sky);
-  for (let wx = 886; wx < 1024; wx += 8) el("rect", { x: wx, y: H - 29, width: 5, height: 6, fill: "#ff7d80" }, sky);
-
-  // Broadway Bridge: twin arches with hangers
-  const br = document.getElementById("bridge");
-  const deck = H + 50;
-  el("line", { x1: 180, y1: deck, x2: 1020, y2: deck, "stroke-width": 3 }, br);
-  [[260, 590], [610, 940]].forEach(([a, b]) => {
-    const mid = (a + b) / 2, peak = deck - 70;
-    el("path", { d: `M${a} ${deck}Q${mid} ${peak * 2 - deck + 0} ${b} ${deck}`, "stroke-width": 3 }, br);
-    for (let hx = a + 22; hx < b - 10; hx += 22) {
-      const t = (hx - a) / (b - a);
-      const ay = (1 - t) * (1 - t) * deck + 2 * (1 - t) * t * (peak * 2 - deck) + t * t * deck;
-      el("line", { x1: hx, y1: ay, x2: hx, y2: deck, "stroke-width": 1 }, br);
-    }
-  });
-
-  // River shimmer
-  const sh = document.getElementById("shimmer");
-  for (let i = 0; i < 26; i++) {
-    const r = el("rect", { x: 200 + rand() * 800, y: H + 8 + rand() * 120, width: 10 + rand() * 26, height: 2, class: "shimmer" }, sh);
-    r.style.setProperty("--d", (4 + rand() * 5).toFixed(1) + "s");
-    r.style.setProperty("--o", (-rand() * 8).toFixed(1) + "s");
-  }
-
   // Share
   document.getElementById("share").addEventListener("click", async () => {
     const data = { title: "Jamie Taylor", text: "Jamie Taylor, CEO, atLocal Media", url: location.href };
